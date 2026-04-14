@@ -1,7 +1,19 @@
 import { create } from 'zustand';
+import axios from 'axios';
 import type { AuthCredentials, SignupPayload } from '../types/auth';
 import type { UserProfile } from '../types/memory';
 import { login as loginService, signup as signupService } from '../services/authService';
+
+const readStoredUser = (): UserProfile | null => {
+  const value = localStorage.getItem('auth_user');
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as UserProfile;
+  } catch {
+    localStorage.removeItem('auth_user');
+    return null;
+  }
+};
 
 interface AuthState {
   user: UserProfile | null;
@@ -15,7 +27,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+  user: readStoredUser(),
   token: localStorage.getItem('auth_token'),
   loading: false,
   error: null,
@@ -25,9 +37,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const data = await loginService(payload);
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       set({ token: data.token, user: data.user, isAuthenticated: true, loading: false });
-    } catch {
-      set({ error: 'Login failed. Please check your credentials.', loading: false });
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data?.message as string | undefined) ?? 'Login failed. Please check your credentials.'
+        : 'Login failed. Please check your credentials.';
+      set({ error: message, loading: false });
       throw new Error('login_failed');
     }
   },
@@ -36,14 +52,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const data = await signupService(payload);
       localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
       set({ token: data.token, user: data.user, isAuthenticated: true, loading: false });
-    } catch {
-      set({ error: 'Signup failed. Please try again.', loading: false });
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data?.message as string | undefined) ?? 'Signup failed. Please try again.'
+        : 'Signup failed. Please try again.';
+      set({ error: message, loading: false });
       throw new Error('signup_failed');
     }
   },
   logout: () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     set({ token: null, user: null, isAuthenticated: false });
   }
 }));
