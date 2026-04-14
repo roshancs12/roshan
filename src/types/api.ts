@@ -16,9 +16,7 @@ export interface SignupRequest {
   password: string;
 }
 
-export interface AnalyzeMemoryResponse extends AnalyzedMemoryPreview {
-  uploadId: string;
-}
+export type AnalyzeMemoryResponse = AnalyzedMemoryPreview;
 
 export interface AddMemoryResponse {
   memory: Memory;

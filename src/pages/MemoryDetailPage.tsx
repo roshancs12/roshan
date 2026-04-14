@@ -46,11 +46,17 @@ export const MemoryDetailPage = () => {
         <section>
           <h3 className="mb-3 text-2xl font-semibold text-blue-100">Related Memories</h3>
           <p className="mb-4 text-sm text-blue-300">Retrieved through embedding similarity search.</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {relatedMemories.map((memory) => (
-              <MemoryCard key={memory.id} memory={memory} />
-            ))}
-          </div>
+          {relatedMemories.length ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {relatedMemories.map((memory) => (
+                <MemoryCard key={memory.id} memory={memory} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-blue-400/20 bg-slate-900/70 p-4 text-blue-200/80">
+              No related memories were returned by the similarity API yet.
+            </div>
+          )}
         </section>
       </div>
     </div>

@@ -18,14 +18,17 @@ interface MemoryState {
   searchLoading: boolean;
   uploadOpen: boolean;
   aiProcessing: boolean;
+  savingMemory: boolean;
   uploadPreview: AnalyzedMemoryPreview | null;
+  pendingDraft: MemoryDraft | null;
   selectedMemory: Memory | null;
   error: string | null;
   loadMemories: () => Promise<void>;
   semanticSearchMemories: (query: string) => Promise<void>;
   clearSearch: () => void;
   setUploadOpen: (open: boolean) => void;
-  uploadMemoryWithAI: (draft: MemoryDraft) => Promise<void>;
+  analyzeDraftWithAI: (draft: MemoryDraft) => Promise<void>;
+  saveAnalyzedMemory: () => Promise<void>;
   getMemoryDetail: (id: string) => Promise<void>;
   loadRelated: (id: string) => Promise<void>;
   resetPreview: () => void;
@@ -40,7 +43,9 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   searchLoading: false,
   uploadOpen: false,
   aiProcessing: false,
+  savingMemory: false,
   uploadPreview: null,
+  pendingDraft: null,
   selectedMemory: null,
   error: null,
 
@@ -76,22 +81,38 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
     set({ uploadOpen: open });
   },
 
-  async uploadMemoryWithAI(draft) {
-    set({ aiProcessing: true, uploadPreview: null, error: null });
+  async analyzeDraftWithAI(draft) {
+    set({ aiProcessing: true, uploadPreview: null, pendingDraft: draft, error: null });
     try {
       const analyzed = await analyzeMemory(draft);
-      set({ uploadPreview: analyzed });
-      const memory = await addMemory({ ...draft, uploadId: analyzed.uploadId });
+      set({ uploadPreview: analyzed, aiProcessing: false });
+    } catch {
+      set({ aiProcessing: false, error: 'AI analysis failed. Check server availability.' });
+      throw new Error('analyze-failed');
+    }
+  },
+
+  async saveAnalyzedMemory() {
+    const { pendingDraft, uploadPreview } = get();
+    if (!pendingDraft || !uploadPreview?.uploadId) {
+      throw new Error('missing-analysis');
+    }
+
+    set({ savingMemory: true, error: null });
+    try {
+      const memory = await addMemory({ ...pendingDraft, uploadId: uploadPreview.uploadId });
       const next = [memory, ...get().memories];
       set({
         memories: next,
         visibleMemories: get().query ? get().visibleMemories : next,
-        aiProcessing: false,
-        uploadOpen: false
+        savingMemory: false,
+        uploadOpen: false,
+        pendingDraft: null,
+        uploadPreview: null
       });
     } catch {
-      set({ aiProcessing: false, error: 'AI analysis/upload failed. Check server availability.' });
-      throw new Error('upload-failed');
+      set({ savingMemory: false, error: 'Saving analyzed memory failed. Please retry.' });
+      throw new Error('save-failed');
     }
   },
 
@@ -116,6 +137,6 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   },
 
   resetPreview() {
-    set({ uploadPreview: null });
+    set({ uploadPreview: null, pendingDraft: null, aiProcessing: false, savingMemory: false });
   }
 }));
