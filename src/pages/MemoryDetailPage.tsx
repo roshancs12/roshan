@@ -1,35 +1,40 @@
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { useMemoryStore } from '../store/memoryStore';
-import { formatMemoryDate } from '../utils/date';
+import { formatDisplayDate } from '../utils/date';
+import { MemoryGrid } from '../components/memory/MemoryGrid';
 
 export const MemoryDetailPage = () => {
   const { id } = useParams();
-  const memory = useMemoryStore((state) => state.memories.find((item) => item.id === id));
+  const { memories, loadRelatedMemories, relatedMemories } = useMemoryStore();
 
-  if (!memory) {
-    return (
-      <div className="rounded-2xl bg-white p-8 text-center">
-        <p className="text-sm text-slate-700">Memory not found.</p>
-        <Link to="/" className="mt-3 inline-block text-sm text-ai-700">Back to dashboard</Link>
-      </div>
-    );
-  }
+  const memory = useMemo(() => memories.find((item) => item.id === id), [memories, id]);
+
+  useEffect(() => {
+    if (id) void loadRelatedMemories(id);
+  }, [id, loadRelatedMemories]);
+
+  if (!memory) return <p className="rounded-xl bg-slate-900/70 p-4 text-white">Memory not found.</p>;
 
   return (
-    <div className="space-y-4 rounded-2xl bg-white p-5 shadow-soft">
-      <Link to="/" className="text-sm text-ai-700">← Back</Link>
-      <img src={memory.imageUrl} alt={memory.caption} className="h-80 w-full rounded-xl object-cover" />
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold text-slate-900">{memory.caption}</h1>
-        <p className="text-sm text-slate-600">{memory.aiDescription}</p>
-        <p className="text-sm text-slate-500">Emotion: <span className="font-medium capitalize">{memory.emotion}</span></p>
-        <p className="text-sm text-slate-500">Date: {formatMemoryDate(memory.createdAt)}</p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          {memory.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">#{tag}</span>
-          ))}
+    <section className="space-y-6">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10">
+        <img src={memory.image} alt={memory.title} className="h-72 w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
+        <div className="absolute bottom-0 p-5 text-white">
+          <h2 className="text-3xl font-bold">{memory.title}</h2>
+          <p>{formatDisplayDate(memory.date)} · {memory.location}</p>
         </div>
       </div>
-    </div>
+      <div className="rounded-2xl border border-white/10 bg-slate-900/65 p-5 text-slate-100">
+        <p className="text-sm text-ai-200">AI-detected emotion: {memory.emotion}</p>
+        <p className="mt-2">{memory.description}</p>
+        <p className="mt-2 text-xs text-slate-400">Caption model: {memory.ai.captionModel} · Embedding model: {memory.ai.embeddingModel}</p>
+      </div>
+      <div>
+        <h3 className="mb-3 text-xl font-semibold text-white">Related Memories (semantic similarity)</h3>
+        <MemoryGrid memories={relatedMemories} />
+      </div>
+    </section>
   );
 };

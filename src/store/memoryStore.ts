@@ -1,107 +1,69 @@
 import { create } from 'zustand';
-import { aiMemoryService } from '../services/aiMemoryService';
-import type { MemoryFilters } from '../types/filters';
-import type { Emotion, Memory, MemoryInput } from '../types/memory';
+import { addMemory, fetchMemories, getRelatedMemories, semanticSearch } from '../services/memoryService';
+import type { AIAnalysisResult, AddMemoryPayload, Memory } from '../types/memory';
 
 interface MemoryState {
   memories: Memory[];
-  filteredMemories: Memory[];
-  searchQuery: string;
-  filters: MemoryFilters;
-  selectedMemory?: Memory;
+  visibleMemories: Memory[];
+  relatedMemories: Memory[];
+  currentQuery: string;
   loading: boolean;
-  aiProcessing: boolean;
-  error?: string;
+  error: string | null;
+  aiPreview: AIAnalysisResult | null;
   loadMemories: () => Promise<void>;
-  setSearchQuery: (query: string) => Promise<void>;
-  toggleTagFilter: (tag: string) => Promise<void>;
-  setEmotionFilter: (emotion: Emotion | 'all') => Promise<void>;
-  clearFilters: () => Promise<void>;
-  addMemory: (input: MemoryInput) => Promise<void>;
-  selectMemory: (id: string) => void;
+  runSemanticSearch: (query: string) => Promise<void>;
+  createMemory: (payload: AddMemoryPayload) => Promise<void>;
+  loadRelatedMemories: (memoryId: string) => Promise<void>;
+  clearAiPreview: () => void;
 }
-
-const applyFilters = async (
-  memories: Memory[],
-  searchQuery: string,
-  filters: MemoryFilters
-): Promise<Memory[]> => {
-  const semanticResult = await aiMemoryService.semanticSearch(memories, searchQuery);
-
-  return semanticResult.filter((memory) => {
-    const matchesEmotion = filters.emotion === 'all' || memory.emotion === filters.emotion;
-    const matchesTags =
-      filters.tags.length === 0 || filters.tags.every((tag) => memory.tags.includes(tag));
-
-    return matchesEmotion && matchesTags;
-  });
-};
 
 export const useMemoryStore = create<MemoryState>((set, get) => ({
   memories: [],
-  filteredMemories: [],
-  searchQuery: '',
-  filters: { tags: [], emotion: 'all' },
-  selectedMemory: undefined,
+  visibleMemories: [],
+  relatedMemories: [],
+  currentQuery: '',
   loading: false,
-  aiProcessing: false,
-  error: undefined,
-
-  async loadMemories() {
-    set({ loading: true, error: undefined });
+  error: null,
+  aiPreview: null,
+  loadMemories: async () => {
+    set({ loading: true, error: null });
     try {
-      const memories = await aiMemoryService.fetchMemories();
-      const filteredMemories = await applyFilters(memories, get().searchQuery, get().filters);
-      set({ memories, filteredMemories, loading: false });
+      const memories = await fetchMemories();
+      set({ memories, visibleMemories: memories, loading: false });
     } catch {
-      set({ loading: false, error: 'Failed to fetch memories.' });
+      set({ error: 'Failed to load memories', loading: false });
     }
   },
-
-  async setSearchQuery(query) {
-    set({ searchQuery: query, aiProcessing: true });
-    const filteredMemories = await applyFilters(get().memories, query, get().filters);
-    set({ filteredMemories, aiProcessing: false });
-  },
-
-  async toggleTagFilter(tag) {
-    const tags = get().filters.tags.includes(tag)
-      ? get().filters.tags.filter((item) => item !== tag)
-      : [...get().filters.tags, tag];
-
-    const filters: MemoryFilters = { ...get().filters, tags };
-    set({ filters, aiProcessing: true });
-    const filteredMemories = await applyFilters(get().memories, get().searchQuery, filters);
-    set({ filteredMemories, aiProcessing: false });
-  },
-
-  async setEmotionFilter(emotion) {
-    const filters: MemoryFilters = { ...get().filters, emotion };
-    set({ filters, aiProcessing: true });
-    const filteredMemories = await applyFilters(get().memories, get().searchQuery, filters);
-    set({ filteredMemories, aiProcessing: false });
-  },
-
-  async clearFilters() {
-    const filters: MemoryFilters = { tags: [], emotion: 'all' };
-    set({ filters, searchQuery: '', aiProcessing: true });
-    const filteredMemories = await applyFilters(get().memories, '', filters);
-    set({ filteredMemories, aiProcessing: false });
-  },
-
-  async addMemory(input) {
-    set({ aiProcessing: true, error: undefined });
+  runSemanticSearch: async (query) => {
+    set({ currentQuery: query, loading: true, error: null });
     try {
-      const memory = await aiMemoryService.addMemory(input);
-      const memories = [memory, ...get().memories];
-      const filteredMemories = await applyFilters(memories, get().searchQuery, get().filters);
-      set({ memories, filteredMemories, aiProcessing: false });
+      const visibleMemories = query.trim() ? await semanticSearch(query) : get().memories;
+      set({ visibleMemories, loading: false });
     } catch {
-      set({ aiProcessing: false, error: 'Failed to process memory upload.' });
+      set({ error: 'Semantic search failed', loading: false });
     }
   },
-
-  selectMemory(id) {
-    set({ selectedMemory: get().memories.find((memory) => memory.id === id) });
-  }
+  createMemory: async (payload) => {
+    set({ loading: true, error: null, aiPreview: null });
+    try {
+      const response = await addMemory(payload);
+      set((state) => {
+        const memories = [response.memory, ...state.memories];
+        return { memories, visibleMemories: memories, aiPreview: response.aiAnalysis, loading: false };
+      });
+    } catch {
+      set({ error: 'Memory upload failed', loading: false });
+      throw new Error('memory_upload_failed');
+    }
+  },
+  loadRelatedMemories: async (memoryId) => {
+    set({ loading: true, error: null });
+    try {
+      const relatedMemories = await getRelatedMemories(memoryId);
+      set({ relatedMemories, loading: false });
+    } catch {
+      set({ error: 'Could not retrieve related memories', loading: false });
+    }
+  },
+  clearAiPreview: () => set({ aiPreview: null })
 }));

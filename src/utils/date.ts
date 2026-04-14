@@ -1,13 +1,9 @@
-export const formatMemoryDate = (date: string) =>
-  new Intl.DateTimeFormat('en-US', {
+export const formatDisplayDate = (isoDate: string): string => {
+  return new Date(isoDate).toLocaleDateString(undefined, {
+    year: 'numeric',
     month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(new Date(date));
+    day: 'numeric'
+  });
+};
 
-export const timelineDateKey = (date: string) =>
-  new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(new Date(date));
+export const dayKey = (isoDate: string): string => new Date(isoDate).toISOString().split('T')[0];

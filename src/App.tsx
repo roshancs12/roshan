@@ -1,29 +1,46 @@
-import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AppShell } from './components/layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
+import { MapPage } from './pages/MapPage';
 import { MemoryDetailPage } from './pages/MemoryDetailPage';
-import { useMemoryStore } from './store/memoryStore';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { SignupPage } from './pages/SignupPage';
+import { TimelinePage } from './pages/TimelinePage';
+import { useAuthStore } from './store/authStore';
 
-const App = () => {
-  const loadMemories = useMemoryStore((state) => state.loadMemories);
-  const error = useMemoryStore((state) => state.error);
+const ProtectedRoutes = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  useEffect(() => {
-    void loadMemories();
-  }, [loadMemories]);
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-6xl">
-        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/memory/:id" element={<MemoryDetailPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </div>
+    <AppShell>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/memory/:id" element={<MemoryDetailPage />} />
+        <Route path="/timeline" element={<TimelinePage />} />
+        <Route path="/map" element={<MapPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Routes>
+    </AppShell>
   );
 };
+
+const App = () => (
+  <>
+    <Toaster position="top-right" />
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/*" element={<ProtectedRoutes />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  </>
+);
 
 export default App;

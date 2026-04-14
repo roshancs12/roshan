@@ -1,69 +1,30 @@
-import { useMemo, useState } from 'react';
-import { EmotionFilter } from '../components/EmotionFilter';
-import { MemoryGrid } from '../components/MemoryGrid';
-import { SearchBar } from '../components/SearchBar';
-import { TagFilter } from '../components/TagFilter';
-import { TimelineView } from '../components/TimelineView';
-import { UploadModal } from '../components/UploadModal';
+import { useEffect } from 'react';
+import { Header } from '../components/layout/Header';
+import { MemoryGrid } from '../components/memory/MemoryGrid';
+import { UploadModal } from '../components/modals/UploadModal';
+import { EmptyState } from '../components/common/EmptyState';
+import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
 import { useMemoryStore } from '../store/memoryStore';
+import { useUiStore } from '../store/uiStore';
 
 export const DashboardPage = () => {
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const {
-    filteredMemories,
-    memories,
-    searchQuery,
-    filters,
-    loading,
-    aiProcessing,
-    setSearchQuery,
-    toggleTagFilter,
-    setEmotionFilter,
-    clearFilters,
-    addMemory
-  } = useMemoryStore();
+  const { loadMemories, runSemanticSearch, visibleMemories, loading, error } = useMemoryStore();
+  const openUpload = useUiStore((state) => state.openUpload);
 
-  const allTags = useMemo(() => {
-    const tags = memories.flatMap((memory) => memory.tags);
-    return Array.from(new Set(tags)).sort();
-  }, [memories]);
+  useEffect(() => {
+    void loadMemories();
+  }, [loadMemories]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">AI Memory Dashboard</h1>
-          <p className="text-sm text-slate-500">Semantic recall for moments, emotions, and context.</p>
-        </div>
-        <button
-          onClick={() => setUploadOpen(true)}
-          className="rounded-lg bg-ai-500 px-4 py-2 text-sm font-medium text-white"
-        >
-          Upload Memory
-        </button>
-      </div>
-
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TagFilter tags={allTags} selectedTags={filters.tags} onToggle={toggleTagFilter} />
-        <EmotionFilter value={filters.emotion} onChange={setEmotionFilter} />
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={clearFilters} className="text-xs font-medium text-ai-700">Reset all filters</button>
-      </div>
-
-      <MemoryGrid memories={filteredMemories} loading={loading} aiProcessing={aiProcessing} />
-
-      <TimelineView memories={filteredMemories} />
-
-      <UploadModal
-        open={uploadOpen}
-        processing={aiProcessing}
-        onClose={() => setUploadOpen(false)}
-        onSubmit={addMemory}
-      />
+    <div className="rounded-2xl border border-white/10 bg-slate-900/45 p-5 backdrop-blur">
+      <Header onOpenUpload={openUpload} onSearch={runSemanticSearch} searchLoading={loading} />
+      {error ? <p className="mb-4 rounded-lg bg-red-900/50 p-3 text-sm text-red-100">{error}</p> : null}
+      {loading ? <LoadingSkeleton /> : null}
+      {!loading && visibleMemories.length > 0 ? <MemoryGrid memories={visibleMemories} /> : null}
+      {!loading && visibleMemories.length === 0 ? (
+        <EmptyState title="No matching memories" description="AI semantic search could not find close matches yet. Upload a memory to build your vector knowledge base." />
+      ) : null}
+      <UploadModal />
     </div>
   );
 };
