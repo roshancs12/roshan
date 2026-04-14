@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react';
-import { ImagePlus, Sparkles, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Brain, ImagePlus, Sparkles, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMemoryStore } from '../../store/memoryStore';
 import { GlassPanel } from '../common/GlassPanel';
@@ -12,10 +12,23 @@ interface UploadModalProps {
 const initialForm = { title: '', date: '', location: '', image: null as File | null };
 
 export const UploadModal = ({ open, onClose }: UploadModalProps) => {
-  const { uploadMemoryWithAI, aiProcessing, uploadPreview, resetPreview } = useMemoryStore();
+  const {
+    analyzeDraftWithAI,
+    saveAnalyzedMemory,
+    aiProcessing,
+    savingMemory,
+    uploadPreview,
+    resetPreview
+  } = useMemoryStore();
   const [form, setForm] = useState(initialForm);
 
   const imageUrl = useMemo(() => (form.image ? URL.createObjectURL(form.image) : ''), [form.image]);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [imageUrl]);
 
   if (!open) return null;
 
@@ -25,24 +38,38 @@ export const UploadModal = ({ open, onClose }: UploadModalProps) => {
     onClose();
   };
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const validateForm = () => {
     if (!form.image || !form.title || !form.date || !form.location) {
       toast.error('Fill all fields and choose an image.');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const runAIAnalysis = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!validateForm()) return;
 
     try {
-      await uploadMemoryWithAI({
+      await analyzeDraftWithAI({
         title: form.title,
         date: form.date,
         location: form.location,
-        image: form.image
+        image: form.image!
       });
+      toast.success('AI analysis complete. Review before saving.');
+    } catch {
+      toast.error('AI processing failed. Please retry.');
+    }
+  };
+
+  const finalizeSave = async () => {
+    try {
+      await saveAnalyzedMemory();
       toast.success('Memory enriched by AI and saved.');
       closeModal();
     } catch {
-      toast.error('AI processing failed. Please retry.');
+      toast.error('Failed to save analyzed memory.');
     }
   };
 
@@ -54,7 +81,7 @@ export const UploadModal = ({ open, onClose }: UploadModalProps) => {
           <button onClick={closeModal} className="rounded p-1 hover:bg-white/10"><X /></button>
         </div>
 
-        <form className="space-y-3" onSubmit={submit}>
+        <form className="space-y-3" onSubmit={runAIAnalysis}>
           <input className="w-full rounded-lg border border-blue-400/30 bg-slate-900 p-2.5 text-blue-50" placeholder="Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input type="date" className="w-full rounded-lg border border-blue-400/30 bg-slate-900 p-2.5 text-blue-50" value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} />
@@ -76,13 +103,20 @@ export const UploadModal = ({ open, onClose }: UploadModalProps) => {
               <p className="font-medium">AI Analysis Complete</p>
               <p><span className="font-semibold">Emotion:</span> {uploadPreview.emotion}</p>
               <p><span className="font-semibold">Description:</span> {uploadPreview.description}</p>
-              <p className="inline-flex items-center gap-1 text-xs"><Sparkles className="h-3.5 w-3.5" /> Embedding vector generated.</p>
+              <p className="inline-flex items-center gap-1 text-xs"><Sparkles className="h-3.5 w-3.5" /> Embedding vector generated and ready for semantic retrieval.</p>
             </div>
           ) : null}
 
-          <button className="w-full rounded-lg bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-500" type="submit" disabled={aiProcessing}>
-            {aiProcessing ? 'Processing...' : 'Analyze & Save Memory'}
-          </button>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button className="rounded-lg border border-blue-400/40 bg-slate-800 py-2.5 font-semibold text-blue-100 hover:bg-slate-700" type="submit" disabled={aiProcessing || savingMemory}>
+              {aiProcessing ? 'Analyzing...' : 'Analyze with AI'}
+            </button>
+            <button className="rounded-lg bg-blue-600 py-2.5 font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60" type="button" onClick={finalizeSave} disabled={!uploadPreview || aiProcessing || savingMemory}>
+              {savingMemory ? 'Saving memory...' : 'Save analyzed memory'}
+            </button>
+          </div>
+
+          <p className="inline-flex items-center gap-1 text-xs text-blue-300"><Brain className="h-3.5 w-3.5" /> Description and emotion are generated by backend AI services.</p>
         </form>
       </GlassPanel>
     </div>

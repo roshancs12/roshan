@@ -36,6 +36,7 @@ export interface AnalyzedMemoryPreview {
   description: string;
   emotion: Emotion;
   embeddingStatus: 'generated';
+  uploadId: string;
 }
 
 export interface UserInsight {

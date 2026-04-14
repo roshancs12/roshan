@@ -1,4 +1,5 @@
 import type { Memory } from '../../types/memory';
+import { SkeletonGrid } from '../common/SkeletonGrid';
 import { Loader } from '../common/Loader';
 import { MemoryCard } from './MemoryCard';
 
@@ -11,7 +12,12 @@ interface MemoryGridProps {
 
 export const MemoryGrid = ({ memories, loading, hasQuery, onCreate }: MemoryGridProps) => {
   if (loading) {
-    return <Loader text="Retrieving memories from vector index..." />;
+    return (
+      <div className="space-y-4">
+        <Loader text="Retrieving memories from vector index..." />
+        <SkeletonGrid />
+      </div>
+    );
   }
 
   if (!memories.length) {
