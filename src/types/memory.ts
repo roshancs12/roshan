@@ -1,22 +1,44 @@
-export type Emotion = 'happy' | 'nostalgic' | 'calm' | 'excited' | 'reflective';
+export type Emotion =
+  | 'joy'
+  | 'nostalgia'
+  | 'calm'
+  | 'surprise'
+  | 'sadness'
+  | 'gratitude'
+  | 'mixed';
+
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
 
 export interface Memory {
   id: string;
-  imageUrl: string;
-  caption: string;
-  aiDescription: string;
-  tags: string[];
+  title: string;
+  image: string;
+  date: string;
+  location: string;
+  coordinates?: GeoPoint;
   emotion: Emotion;
+  description: string;
+  similarityScore?: number;
   createdAt: string;
 }
 
-export interface MemoryInput {
-  imageUrl: string;
-  caption: string;
+export interface MemoryDraft {
+  title: string;
+  date: string;
+  location: string;
+  image: File;
 }
 
-export interface AIGeneratedMetadata {
-  tags: string[];
+export interface AnalyzedMemoryPreview {
+  description: string;
   emotion: Emotion;
-  aiDescription: string;
+  embeddingStatus: 'generated';
+}
+
+export interface UserInsight {
+  mostFrequentEmotion?: Emotion;
+  activePeriods: string[];
 }
