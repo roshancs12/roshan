@@ -1,6 +1,16 @@
-# AI Memory Manager Frontend
+# Memories AI Frontend
 
-A React + TypeScript + Tailwind + Zustand frontend that simulates an AI-powered memory management workflow.
+Production-grade React + TypeScript frontend for an AI-powered memory management system.
+
+## Tech stack
+
+- React (Vite)
+- TypeScript
+- Tailwind CSS
+- Zustand
+- React Router
+- Axios
+- Leaflet (React Leaflet)
 
 ## Run
 
@@ -9,10 +19,11 @@ npm install
 npm run dev
 ```
 
-## Architecture
+Set `VITE_API_BASE_URL` to your backend API base URL (default: `http://localhost:8080/api`).
 
-- `src/components`: reusable UI blocks (grid, filters, cards, modal, timeline)
-- `src/pages`: dashboard and memory detail views
-- `src/services`: fake backend + semantic/AI simulation layer
-- `src/store`: Zustand global state and async actions
-- `src/types`: shared TypeScript models
+## AI behavior exposed in UI
+
+- AI memory analysis during upload (`/memories/analyze`) with generated description + emotion preview
+- Semantic retrieval (`/memories/semantic-search`) via the dashboard search bar
+- Similar memory recommendations (`/memories/:id/related`) on detail page
+- Emotion and AI-generated description labels on all cards

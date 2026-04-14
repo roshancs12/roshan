@@ -1,69 +1,51 @@
-import { useMemo, useState } from 'react';
-import { EmotionFilter } from '../components/EmotionFilter';
-import { MemoryGrid } from '../components/MemoryGrid';
-import { SearchBar } from '../components/SearchBar';
-import { TagFilter } from '../components/TagFilter';
-import { TimelineView } from '../components/TimelineView';
-import { UploadModal } from '../components/UploadModal';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { Header } from '../components/layout/Header';
+import { Sidebar } from '../components/layout/Sidebar';
+import { MemoryGrid } from '../components/memory/MemoryGrid';
+import { UploadModal } from '../components/memory/UploadModal';
 import { useMemoryStore } from '../store/memoryStore';
 
 export const DashboardPage = () => {
-  const [uploadOpen, setUploadOpen] = useState(false);
   const {
-    filteredMemories,
-    memories,
-    searchQuery,
-    filters,
+    visibleMemories,
+    query,
     loading,
-    aiProcessing,
-    setSearchQuery,
-    toggleTagFilter,
-    setEmotionFilter,
-    clearFilters,
-    addMemory
+    searchLoading,
+    uploadOpen,
+    error,
+    loadMemories,
+    semanticSearchMemories,
+    clearSearch,
+    setUploadOpen
   } = useMemoryStore();
 
-  const allTags = useMemo(() => {
-    const tags = memories.flatMap((memory) => memory.tags);
-    return Array.from(new Set(tags)).sort();
-  }, [memories]);
+  useEffect(() => {
+    void loadMemories();
+  }, [loadMemories]);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">AI Memory Dashboard</h1>
-          <p className="text-sm text-slate-500">Semantic recall for moments, emotions, and context.</p>
-        </div>
-        <button
-          onClick={() => setUploadOpen(true)}
-          className="rounded-lg bg-ai-500 px-4 py-2 text-sm font-medium text-white"
-        >
-          Upload Memory
-        </button>
+    <div className="relative min-h-screen bg-slate-950 text-white">
+      <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=1800&q=80" className="pointer-events-none fixed inset-0 h-full w-full object-cover opacity-20" alt="background" />
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-950/90 to-blue-950/80" />
+      <div className="relative mx-auto flex max-w-7xl gap-6 p-4">
+        <Sidebar />
+        <main className="flex-1 space-y-6">
+          <Header
+            query={query}
+            loading={searchLoading}
+            onQueryChange={(value) => void semanticSearchMemories(value)}
+            onClear={clearSearch}
+            onNew={() => setUploadOpen(true)}
+          />
+          <MemoryGrid memories={visibleMemories} loading={loading || searchLoading} hasQuery={Boolean(query)} onCreate={() => setUploadOpen(true)} />
+        </main>
       </div>
-
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TagFilter tags={allTags} selectedTags={filters.tags} onToggle={toggleTagFilter} />
-        <EmotionFilter value={filters.emotion} onChange={setEmotionFilter} />
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={clearFilters} className="text-xs font-medium text-ai-700">Reset all filters</button>
-      </div>
-
-      <MemoryGrid memories={filteredMemories} loading={loading} aiProcessing={aiProcessing} />
-
-      <TimelineView memories={filteredMemories} />
-
-      <UploadModal
-        open={uploadOpen}
-        processing={aiProcessing}
-        onClose={() => setUploadOpen(false)}
-        onSubmit={addMemory}
-      />
+      <UploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
     </div>
   );
 };
