@@ -1,29 +1,23 @@
-import type { ChangeEvent } from 'react';
+import { Search, Sparkles } from 'lucide-react';
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
+  query: string;
+  isSearching: boolean;
+  onSearch: (query: string) => void;
 }
 
-export const SearchBar = ({ value, onChange }: SearchBarProps) => {
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onChange(event.target.value);
-  };
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-      <label htmlFor="semantic-search" className="mb-2 block text-sm font-medium text-slate-700">
-        Semantic Search
-      </label>
-      <input
-        id="semantic-search"
-        type="text"
-        value={value}
-        onChange={handleChange}
-        placeholder="Try: friends at sunset, calm forest mornings..."
-        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-ai-500"
-      />
-      <p className="mt-2 text-xs text-slate-500">AI maps meaning across caption, tags, and context.</p>
+export const SearchBar = ({ query, isSearching, onSearch }: SearchBarProps) => (
+  <div className="glass-panel flex items-center gap-3 rounded-2xl px-4 py-3">
+    <Search className="h-4 w-4 text-blue-300" />
+    <input
+      value={query}
+      onChange={(event) => onSearch(event.target.value)}
+      placeholder="Semantic search: e.g., peaceful evenings near the sea"
+      className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none"
+    />
+    <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-blue-200">
+      <Sparkles className="h-3 w-3" />
+      {isSearching ? 'Understanding intent…' : 'AI Semantic'}
     </div>
-  );
-};
+  </div>
+);

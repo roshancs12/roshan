@@ -1,22 +1,43 @@
-export type Emotion = 'happy' | 'nostalgic' | 'calm' | 'excited' | 'reflective';
+export type Emotion =
+  | 'joyful'
+  | 'nostalgic'
+  | 'peaceful'
+  | 'excited'
+  | 'reflective'
+  | 'melancholic'
+  | 'grateful';
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
 
 export interface Memory {
   id: string;
-  imageUrl: string;
-  caption: string;
-  aiDescription: string;
-  tags: string[];
+  title: string;
+  image: string;
+  date: string;
+  location: string;
+  coordinates?: Coordinates;
   emotion: Emotion;
+  description: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
-export interface MemoryInput {
-  imageUrl: string;
-  caption: string;
-}
-
-export interface AIGeneratedMetadata {
-  tags: string[];
+export interface MemoryAnalysis {
+  description: string;
   emotion: Emotion;
-  aiDescription: string;
+}
+
+export interface AddMemoryInput {
+  title: string;
+  date: string;
+  location: string;
+  image: File;
+}
+
+export interface ProfileInsights {
+  mostFrequentEmotion: Emotion | null;
+  activeMemoryPeriods: string[];
 }

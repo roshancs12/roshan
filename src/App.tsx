@@ -1,28 +1,52 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AppShell } from './components/layout/AppShell';
 import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
+import { MapPage } from './pages/MapPage';
 import { MemoryDetailPage } from './pages/MemoryDetailPage';
-import { useMemoryStore } from './store/memoryStore';
+import { ProfilePage } from './pages/ProfilePage';
+import { SignupPage } from './pages/SignupPage';
+import { TimelinePage } from './pages/TimelinePage';
+import { useAuthStore } from './store/authStore';
+
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const token = useAuthStore((state) => state.token);
+  return token ? children : <Navigate to="/login" replace />;
+};
 
 const App = () => {
-  const loadMemories = useMemoryStore((state) => state.loadMemories);
-  const error = useMemoryStore((state) => state.error);
+  const initialize = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
-    void loadMemories();
-  }, [loadMemories]);
+    void initialize();
+  }, [initialize]);
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 md:px-8">
-      <div className="mx-auto max-w-6xl">
-        {error && <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/memory/:id" element={<MemoryDetailPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </div>
+    <>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+
+        <Route
+          element={
+            <ProtectedRoute>
+              <AppShell />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/memories/:id" element={<MemoryDetailPage />} />
+          <Route path="/timeline" element={<TimelinePage />} />
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+      <Toaster position="top-right" />
+    </>
   );
 };
 

@@ -1,35 +1,25 @@
+import { motion } from 'framer-motion';
 import type { Memory } from '../types/memory';
-import { timelineDateKey } from '../utils/date';
+import { formatMemoryDate, groupMemoriesByDay } from '../utils/date';
 
-interface TimelineViewProps {
+interface Props {
   memories: Memory[];
 }
 
-export const TimelineView = ({ memories }: TimelineViewProps) => {
-  const grouped = memories.reduce<Record<string, Memory[]>>((acc, memory) => {
-    const key = timelineDateKey(memory.createdAt);
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(memory);
-    return acc;
-  }, {});
+export const TimelineView = ({ memories }: Props) => {
+  const grouped = Object.entries(groupMemoriesByDay(memories)).sort(([a], [b]) => (a > b ? -1 : 1));
 
   return (
-    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-      <h2 className="text-base font-semibold text-slate-800">Timeline Intelligence</h2>
-      {Object.entries(grouped).map(([date, dailyMemories]) => (
-        <div key={date} className="rounded-xl bg-slate-50 p-3">
-          <p className="text-sm font-medium text-slate-700">{date}</p>
-          <div className="mt-2 space-y-2">
-            {dailyMemories.map((memory) => (
-              <div key={memory.id} className="flex items-center gap-3 rounded-lg bg-white p-2">
-                <img src={memory.imageUrl} alt={memory.caption} className="h-12 w-12 rounded-md object-cover" />
-                <div>
-                  <p className="text-sm text-slate-800">{memory.caption}</p>
-                  <p className="text-xs text-slate-500">{memory.aiDescription}</p>
-                </div>
-              </div>
+    <div className="space-y-8">
+      {grouped.map(([dateKey, list]) => (
+        <div key={dateKey} className="relative border-l border-blue-500/40 pl-8">
+          <h3 className="mb-4 text-sm font-medium text-blue-200">{formatMemoryDate(list[0].date)}</h3>
+          <div className="space-y-4">
+            {list.map((memory, idx) => (
+              <motion.div key={memory.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className="glass-panel rounded-xl p-4">
+                <p className="text-sm font-semibold text-white">{memory.title}</p>
+                <p className="mt-1 text-sm text-slate-300">{memory.description}</p>
+              </motion.div>
             ))}
           </div>
         </div>
